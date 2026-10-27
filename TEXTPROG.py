@@ -1,16 +1,19 @@
 import sys
-import pandas as pd
+import matplotlib
+# matplotlib.use('TkAgg')
+# import pandas as pd
 import numpy as np
 import xarray as xr
-from scipy.interpolate import griddata
+# from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
+import cartopy
 from cartopy import crs as ccrs, feature as cftr
 from matplotlib import cm
-import scipy as spy
+# import scipy as spy
 from math import *
-datasetR1=xr.open_dataset('/Users/maddie/Desktop/Capstone/SAMPLE DATA/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r1i1p1f1_gn_19910101-19961231.nc')
-datasetR2=xr.open_dataset('/Users/maddie/Desktop/Capstone/SAMPLE DATA/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r2i1p1f1_gn_19910101-19961231.nc')
-datasetR3=xr.open_dataset('/Users/maddie/Desktop/Capstone/SAMPLE DATA/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r3i1p1f1_gn_19910101-19961231.nc')
+datasetR1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r1i1p1f1_gn_19910101-19961231.nc',engine='netcdf4')
+datasetR2=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r2i1p1f1_gn_19910101-19961231.nc')
+datasetR3=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r3i1p1f1_gn_19910101-19961231.nc')
 #Vars for dataset 1
 latR1=datasetR1.lat_bnds
 lonR1=datasetR1.lon_bnds
