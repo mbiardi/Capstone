@@ -87,18 +87,27 @@ lonR1grid, latR1grid = np.meshgrid(lonR1,latR1)
 
 
 #TEMPERATURE DATA
+convTavg=np.zeros(100) #Array for storing average converted temp for each file in volc-pinatubo-full
+for i in range(99): #Volc-pinatubo-full, 100 files, need to open each one and convert temp, create array that stores converted temp for each file, then average
+    datasetT=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/*',engine='netcdf4')
+    tasT=datasetT.tas
+    tasConvert=tasT
+    for j in range(364):
+        tasConvert[j]=tasT[j]-273.15
+    convTavg[i]=tasConvert.mean(axis=0)
+    
 datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18530101-18531231.nc',engine='netcdf4')
-# print(datasetT1.tas)
+# # print(datasetT1.tas)
 latT1=datasetT1.lat
 lonT1=datasetT1.lon
-tasT1=datasetT1.tas
-tasConvertT1=tasT1
+# tasT1=datasetT1.tas
+# tasConvertT1=tasT1
 
 
-for i in range(364):
-    tasConvertT1[i]=tasT1[i]-273.15
-convT1avg=tasConvertT1.mean(axis=0)
-print(convT1avg.sizes)
+# for i in range(364):
+#     tasConvertT1[i]=tasT1[i]-273.15
+fullTconv=convTavg.mean(axis=0)#This should stay out of the loop
+print(fullTconv.sizes) 
 
 lonT1grid, latT1grid=np.meshgrid(lonT1,latT1)
 
@@ -118,6 +127,6 @@ ax.coastlines(resolution=res,linewidth=0.5,color='white')
 ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='white')
 ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
 
-dataplot = ax.contourf(lonT1grid, latT1grid, convT1avg, transform=ccrs.PlateCarree())
+dataplot = ax.contourf(lonT1grid, latT1grid, fullTconv, transform=ccrs.PlateCarree())
 plt.colorbar(dataplot, orientation='horizontal');
 plt.show()
