@@ -95,10 +95,12 @@ for file_path in full_tas_files:
     datasetT=xr.open_dataset(file_path,engine='netcdf4')
     tasT=datasetT.tas
     tasConvert=tasT
-    for i in range(364):
-        tasConvert[i]=tasT[i]-273.15
-    convTavg[i]=tasConvert.mean(axis=0)
-    print(convTavg[i])
+    print('i') #this is not doing anything? why?
+    for i in range(99):
+        for j in range(364):
+            tasConvert[j]=tasT[j]-273.15
+        convTavg[i]=tasConvert.mean(axis=0)
+        # print(convTavg[i])
 
 
 # for i in range(99): #Volc-pinatubo-full, 100 files, need to open each one and convert temp, create array that stores converted temp for each file, then average
@@ -125,22 +127,22 @@ fullTconv=convTavg.mean(axis=0)#This should stay out of the loop
 
 lonT1grid, latT1grid=np.meshgrid(lonT1,latT1)
 
-lonW=-140
-lonE=-50
-latS=15
-latN=65
-cLat=(latN+latS)/2
-cLon=(lonW+lonE)/2
-res='110m'
-projPC=ccrs.PlateCarree()
-fig=plt.figure(figsize=(11,8.5))
-ax=plt.subplot(1,1,1,projection=projPC)
-gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
-# ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
-ax.coastlines(resolution=res,linewidth=0.5,color='white')
-ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='white')
-ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
+# lonW=-140
+# lonE=-50
+# latS=15
+# latN=65
+# cLat=(latN+latS)/2
+# cLon=(lonW+lonE)/2
+# res='110m'
+# projPC=ccrs.PlateCarree()
+# fig=plt.figure(figsize=(11,8.5))
+# ax=plt.subplot(1,1,1,projection=projPC)
+# gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
+# # ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
+# ax.coastlines(resolution=res,linewidth=0.5,color='white')
+# ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='white')
+# ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
 
-dataplot = ax.contourf(lonT1grid, latT1grid, fullTconv, transform=ccrs.PlateCarree())
-plt.colorbar(dataplot, orientation='horizontal');
-plt.show()
+# dataplot = ax.contourf(lonT1grid, latT1grid, fullTconv, transform=ccrs.PlateCarree())
+# plt.colorbar(dataplot, orientation='horizontal');
+# plt.show()
