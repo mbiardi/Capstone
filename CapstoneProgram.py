@@ -11,6 +11,7 @@ from cartopy import crs as ccrs, feature as cftr
 from matplotlib import cm
 # import scipy as spy
 from math import *
+from glob import glob
 datasetR1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r1i1p1f1_gn_19910101-19961231.nc',engine='netcdf4')
 datasetR2=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r2i1p1f1_gn_19910101-19961231.nc')
 datasetR3=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r3i1p1f1_gn_19910101-19961231.nc')
@@ -87,17 +88,30 @@ lonR1grid, latR1grid = np.meshgrid(lonR1,latR1)
 
 
 #TEMPERATURE DATA
-convTavg=np.zeros(100) #Array for storing average converted temp for each file in volc-pinatubo-full
-for i in range(99): #Volc-pinatubo-full, 100 files, need to open each one and convert temp, create array that stores converted temp for each file, then average
-    datasetT=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/*',engine='netcdf4')
+convTavg=np.zeros(100) #Array for storing average converted temp for each file in volc-pinatubo-full - need to append extra dimension of 100 onto lat, lon, and tas values?
+
+full_tas_files=glob('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volv-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_*.nc')
+for file_path in full_tas_files:
+    datasetT=xr.open_dataset(file_path,engine='netcdf4')
     tasT=datasetT.tas
     tasConvert=tasT
-    for j in range(364):
-        tasConvert[j]=tasT[j]-273.15
+    for i in range(364):
+        tasConvert[i]=tasT[i]-273.15
     convTavg[i]=tasConvert.mean(axis=0)
+    print(convTavg[i])
+
+
+# for i in range(99): #Volc-pinatubo-full, 100 files, need to open each one and convert temp, create array that stores converted temp for each file, then average
+#     # datasetT=xr.open_mfdataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_*.nc',engine='netcdf4',parallel=True)
+#     tasT=datasetT.tas
+#     tasConvert=tasT
+#     for j in range(364):
+#         tasConvert[j]=tasT[j]-273.15
+    # convTavg[i]=tasConvert.mean(axis=0)
+print(convTavg)
     
-datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18530101-18531231.nc',engine='netcdf4')
-# # print(datasetT1.tas)
+datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18500601-18501231.nc',engine='netcdf4')
+#This dataset used to get plotting lat/lon values
 latT1=datasetT1.lat
 lonT1=datasetT1.lon
 # tasT1=datasetT1.tas
@@ -107,7 +121,7 @@ lonT1=datasetT1.lon
 # for i in range(364):
 #     tasConvertT1[i]=tasT1[i]-273.15
 fullTconv=convTavg.mean(axis=0)#This should stay out of the loop
-print(fullTconv.sizes) 
+# print(fullTconv.sizes) 
 
 lonT1grid, latT1grid=np.meshgrid(lonT1,latT1)
 
