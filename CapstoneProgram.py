@@ -12,6 +12,7 @@ from matplotlib import cm
 # import scipy as spy
 from math import *
 from glob import glob
+import os
 datasetR1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r1i1p1f1_gn_19910101-19961231.nc',engine='netcdf4')
 datasetR2=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r2i1p1f1_gn_19910101-19961231.nc')
 datasetR3=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r3i1p1f1_gn_19910101-19961231.nc')
@@ -90,17 +91,39 @@ lonR1grid, latR1grid = np.meshgrid(lonR1,latR1)
 #TEMPERATURE DATA
 convTavg=np.zeros(100) #Array for storing average converted temp for each file in volc-pinatubo-full - need to append extra dimension of 100 onto lat, lon, and tas values?
 
-full_tas_files=glob('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volv-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_*.nc')
-for file_path in full_tas_files:
-    datasetT=xr.open_dataset(file_path,engine='netcdf4')
-    tasT=datasetT.tas
-    tasConvert=tasT
-    print('i') #this is not doing anything? why?
-    for i in range(99):
-        for j in range(364):
-            tasConvert[j]=tasT[j]-273.15
-        convTavg[i]=tasConvert.mean(axis=0)
-        # print(convTavg[i])
+full_tas_files="/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/"
+ensemble=[f"r{i}i{j}p{k}f{l}" for i in range (1,25) for j in range(1,25) for k in range(1,25) for l in range(1,25)]
+years=["18510101-18511231","18520101-18521231","18530101-18531231"]
+fname_template="tas_day_MIROC-ES2L_volc-pinatubo-full_{ensemble}_gn_{years}.nc"
+var="tas"
+output_file=os.path.join(full_tas_files, "tas_day_MIROC-ES2L_volc-pinatubo-full_ensemble_gn_1851-1853.nc") 
+files = [os.path.join(full_tas_files, fname_template.format(ensemble=e, years=y)) for e in ensemble for y in years] 
+for f in files: 
+    if not os.path.isfile(f): raise FileNotFoundError(f"Missing file: {f}")
+ds = xr.open_mfdataset( files, combine="nested", concat_dim="time", data_vars="minimal",coords="minimal", compat="override",use_cftime=True)
+ds = ds.sortby("time") 
+tas = ds[var] 
+print(tas) 
+print("Shape (time, lat, lon):", tas.shape) 
+print("Time range:", tas.time.values[0], "to", tas.time.values[-1])
+tas_np=np.zeros((len(ensemble), len(tas.time), len(tas.lat), len(tas.lon)))
+lon=np.zeros((len(ensemble), len(tas.lat), len(tas.lon)))
+lat=np.zeros((len(ensemble), len(tas.lat)))
+time=np.zeros((len(ensemble), len(tas.time)))
+print(tas.time.values.size)
+for i in range(len(ensemble)):
+    tas_np[i] = tas.values 
+    lon[i] = tas.lon.values 
+    lat[i] = tas.lat.values 
+    print(i)
+    # time[i] = tas.time.values #the only reason I can think for why this is having an error is because the time values are stacked atop each other when loading NetCDFs, so there's no need for the time array.
+out_ds = tas.to_dataset(name=var) 
+out_ds.attrs = ds.attrs # keep original global metadata 
+out_ds.attrs["history"] = ( f"Combined years {years[0]}-{years[-1]} with xarray. " + ds.attrs.get("history", "") ) 
+out_ds.to_netcdf(output_file) 
+print("Wrote:", output_file) 
+ds.close()
+
 
 
 # for i in range(99): #Volc-pinatubo-full, 100 files, need to open each one and convert temp, create array that stores converted temp for each file, then average
@@ -112,7 +135,7 @@ for file_path in full_tas_files:
     # convTavg[i]=tasConvert.mean(axis=0)
 print(convTavg)
     
-datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18500601-18501231.nc',engine='netcdf4')
+datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18510101-18511231.nc',engine='netcdf4')
 #This dataset used to get plotting lat/lon values
 latT1=datasetT1.lat
 lonT1=datasetT1.lon
