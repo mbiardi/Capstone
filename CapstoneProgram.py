@@ -13,6 +13,7 @@ from matplotlib import cm
 from math import *
 from glob import glob
 import os
+import re
 datasetR1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r1i1p1f1_gn_19910101-19961231.nc',engine='netcdf4')
 datasetR2=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r2i1p1f1_gn_19910101-19961231.nc')
 datasetR3=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r3i1p1f1_gn_19910101-19961231.nc')
@@ -92,7 +93,7 @@ lonR1grid, latR1grid = np.meshgrid(lonR1,latR1)
 convTavg=np.zeros(100) #Array for storing average converted temp for each file in volc-pinatubo-full - need to append extra dimension of 100 onto lat, lon, and tas values?
 
 full_tas_files="/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/"
-ensemble=[f"r{i}i{j}p{k}f{l}" for i in range (1,25) for j in range(1,25) for k in range(1,25) for l in range(1,25)]
+ensemble=[f"r{i}i{j}p{k}f{l}" for i in range (1,26) for j in range(1,26) for k in range(1,26) for l in range(1,26)]
 years=["18510101-18511231","18520101-18521231","18530101-18531231"]
 fname_template="tas_day_MIROC-ES2L_volc-pinatubo-full_{ensemble}_gn_{years}.nc"
 var="tas"
