@@ -173,6 +173,7 @@ for _, member, grid in found:
     dataplot = ax.contourf(lonTgrid, latTgrid, convTanomalies, transform=ccrs.PlateCarree())
     plt.colorbar(dataplot, orientation='horizontal');
     plt.show()
+    #Now able to loop through all members to plot, now need to figure out how to concatenate all members to get mean anomaly for full forcing.
 
 
 print(convTanomalies)
