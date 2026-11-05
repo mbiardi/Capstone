@@ -90,41 +90,61 @@ lonR1grid, latR1grid = np.meshgrid(lonR1,latR1)
 
 
 #TEMPERATURE DATA
-convTavg=np.zeros(100) #Array for storing average converted temp for each file in volc-pinatubo-full - need to append extra dimension of 100 onto lat, lon, and tas values?
 
 full_tas_files="/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/"
+model = "MIROC-ES2L" 
+experiment = "volc-pinatubo-full"
 ensemble=[f"r{i}i{j}p{k}f{l}" for i in range (1,26) for j in range(1,26) for k in range(1,26) for l in range(1,26)]
 years=["18510101-18511231","18520101-18521231","18530101-18531231"]
-fname_template="tas_day_MIROC-ES2L_volc-pinatubo-full_{ensemble}_gn_{years}.nc"
+fname_template="tas_day_{model}_{experiment}_{ensemble}_gn_{years}.nc"
 var="tas"
-output_file=os.path.join(full_tas_files, "tas_day_MIROC-ES2L_volc-pinatubo-full_ensemble_gn_1851-1853.nc") 
-files = [os.path.join(full_tas_files, fname_template.format(ensemble=e, years=y)) for e in ensemble for y in years] 
-for f in files: 
-    if not os.path.isfile(f): raise FileNotFoundError(f"Missing file: {f}")
-ds = xr.open_mfdataset( files, combine="nested", concat_dim="time", data_vars="minimal",coords="minimal", compat="override",use_cftime=True)
+r_values = range(1, 26)
+if hasattr(xr, "coders") and hasattr(xr.coders, "CFDatetimeCoder"):
+    time_kw = {"decode_times": xr.coders.CFDatetimeCoder(use_cftime=True)} 
+else: time_kw = {"use_cftime": True}
+pattern = os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_r*i*p*f*_*_{years[0]}.nc")
+member_re = re.compile(r"_(r(\d+)i(\d+)p(\d+)f(\d+))_([^_]+)_\d{8}-\d{8}\.nc$") 
+found = [] 
+for path in glob(pattern): 
+    m = member_re.search(os.path.basename(path)) 
+    if m and int(m.group(2)) in r_values:
+        rnum, inum, pnum, fnum = (int(m.group(k)) for k in (2, 3, 4, 5)) 
+        found.append(((rnum, inum, pnum, fnum), m.group(1), m.group(6))) 
+        found.sort()
+        print(f"Found {len(found)} member(s):", [mem for _, mem, _ in found]) 
+        if not found:
+            raise FileNotFoundError(f"No files match: {pattern}")
+
+for _, member, grid in found:
+    files = [os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_{y}.nc") for y in years] 
+    missing = [f for f in files if not os.path.isfile(f)] 
+    if missing: print(f"Skipping {member}, missing: {missing}") 
+    continue 
+ds = xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw) 
 ds = ds.sortby("time") 
 tas = ds[var] 
+print(f"\n{member}: shape (time, lat, lon) = {tas.shape}") 
+print(" Time range:", tas.time.values[0], "to", tas.time.values[-1]) 
+output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc") 
+out_ds = tas.to_dataset(name=var) 
+out_ds.attrs = ds.attrs
+out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
+out_ds.to_netcdf(output_file) 
+print(" Wrote:", output_file) 
+ds.close()
+ 
 print(tas) 
 print("Shape (time, lat, lon):", tas.shape) 
 print("Time range:", tas.time.values[0], "to", tas.time.values[-1])
-tas_np=np.zeros((len(ensemble), len(tas.time), len(tas.lat), len(tas.lon)))
-lon=np.zeros((len(ensemble), len(tas.lat), len(tas.lon)))
-lat=np.zeros((len(ensemble), len(tas.lat)))
-time=np.zeros((len(ensemble), len(tas.time)))
-print(tas.time.values.size)
-for i in range(len(ensemble)):
-    tas_np[i] = tas.values 
-    lon[i] = tas.lon.values 
-    lat[i] = tas.lat.values 
-    print(i)
-    # time[i] = tas.time.values #the only reason I can think for why this is having an error is because the time values are stacked atop each other when loading NetCDFs, so there's no need for the time array.
-out_ds = tas.to_dataset(name=var) 
-out_ds.attrs = ds.attrs # keep original global metadata 
-out_ds.attrs["history"] = ( f"Combined years {years[0]}-{years[-1]} with xarray. " + ds.attrs.get("history", "") ) 
-out_ds.to_netcdf(output_file) 
-print("Wrote:", output_file) 
-ds.close()
 
+
+
+datasetT=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r25i1p1f2_gn_1851-1853.nc',engine='netcdf4')
+tasT=datasetT.tas
+tasConvert=tasT
+for i in range(1095):
+    tasConvert[i]=tasT[i]-273.15
+convTavg=tasConvert.mean(axis=0)
 
 
 # for i in range(99): #Volc-pinatubo-full, 100 files, need to open each one and convert temp, create array that stores converted temp for each file, then average
@@ -135,38 +155,38 @@ ds.close()
 #         tasConvert[j]=tasT[j]-273.15
     # convTavg[i]=tasConvert.mean(axis=0)
 print(convTavg)
-    
-datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18510101-18511231.nc',engine='netcdf4')
+
+# datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18510101-18511231.nc',engine='netcdf4')
 #This dataset used to get plotting lat/lon values
-latT1=datasetT1.lat
-lonT1=datasetT1.lon
+latT=datasetT.lat
+lonT=datasetT.lon
 # tasT1=datasetT1.tas
 # tasConvertT1=tasT1
 
 
 # for i in range(364):
 #     tasConvertT1[i]=tasT1[i]-273.15
-fullTconv=convTavg.mean(axis=0)#This should stay out of the loop
+# fullTconv=convTavg.mean(axis=0)#This should stay out of the loop
 # print(fullTconv.sizes) 
 
-lonT1grid, latT1grid=np.meshgrid(lonT1,latT1)
+lonTgrid, latTgrid=np.meshgrid(lonT,latT)
 
-# lonW=-140
-# lonE=-50
-# latS=15
-# latN=65
-# cLat=(latN+latS)/2
-# cLon=(lonW+lonE)/2
-# res='110m'
-# projPC=ccrs.PlateCarree()
-# fig=plt.figure(figsize=(11,8.5))
-# ax=plt.subplot(1,1,1,projection=projPC)
-# gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
-# # ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
-# ax.coastlines(resolution=res,linewidth=0.5,color='white')
-# ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='white')
-# ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
+lonW=-140
+lonE=-50
+latS=15
+latN=65
+cLat=(latN+latS)/2
+cLon=(lonW+lonE)/2
+res='110m'
+projPC=ccrs.PlateCarree()
+fig=plt.figure(figsize=(11,8.5))
+ax=plt.subplot(1,1,1,projection=projPC)
+gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
+# ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
+ax.coastlines(resolution=res,linewidth=0.5,color='white')
+ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='white')
+ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
 
-# dataplot = ax.contourf(lonT1grid, latT1grid, fullTconv, transform=ccrs.PlateCarree())
-# plt.colorbar(dataplot, orientation='horizontal');
-# plt.show()
+dataplot = ax.contourf(lonTgrid, latTgrid, convTavg, transform=ccrs.PlateCarree())
+plt.colorbar(dataplot, orientation='horizontal');
+plt.show()
