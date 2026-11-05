@@ -118,75 +118,88 @@ for path in glob(pattern):
 for _, member, grid in found:
     files = [os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_{y}.nc") for y in years] 
     missing = [f for f in files if not os.path.isfile(f)] 
-    if missing: print(f"Skipping {member}, missing: {missing}") 
-    continue 
-ds = xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw) 
-ds = ds.sortby("time") 
-tas = ds[var] 
-print(f"\n{member}: shape (time, lat, lon) = {tas.shape}") 
-print(" Time range:", tas.time.values[0], "to", tas.time.values[-1]) 
-output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc") 
-out_ds = tas.to_dataset(name=var) 
-out_ds.attrs = ds.attrs
-out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
-out_ds.to_netcdf(output_file) 
-print(" Wrote:", output_file) 
-ds.close()
- 
+    if missing: 
+        print(f"Skipping {member}, missing: {missing}") 
+        continue 
+    ds = xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw) 
+    ds = ds.sortby("time") 
+    tas = ds[var] 
+    print(f"\n{member}: shape (time, lat, lon) = {tas.shape}") 
+    print(" Time range:", tas.time.values[0], "to", tas.time.values[-1]) 
+    output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc") 
+    out_ds = tas.to_dataset(name=var) 
+    out_ds.attrs = ds.attrs
+    out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
+    out_ds.to_netcdf(output_file) 
+    print(" Wrote:", output_file) 
+    ds.close()
+#Now have all data in own files for three years. Need to figure out how to convert to C for each file, and then average across all files.
 print(tas) 
 print("Shape (time, lat, lon):", tas.shape) 
 print("Time range:", tas.time.values[0], "to", tas.time.values[-1])
 
+for _, member, grid in found:
+    datasetT=xr.open_dataset(os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc"), engine="netcdf4")
+    tasT=datasetT.tas
+    tasConvert=tasT
+    for i in range(1095):
+        tasConvert[i]=tasT[i]-273.15
+    convTavg=tasConvert.mean(axis=0)
+    for j in range(1095):
+        tasConvert[j]=tasT[j]-convTavg
+    convTanomalies=tasConvert.mean(axis=0)#This should be anomalies
+    latT=datasetT.lat
+    lonT=datasetT.lon
+
+    lonTgrid, latTgrid=np.meshgrid(lonT,latT)
+
+    lonW=-140
+    lonE=-50
+    latS=15
+    latN=65
+    # cLat=(latN+latS)/2
+    # cLon=(lonW+lonE)/2
+    res='110m'
+    projPC=ccrs.PlateCarree()
+    fig=plt.figure(figsize=(11,8.5))
+    ax=plt.subplot(1,1,1,projection=projPC)
+    gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
+    ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
+    ax.coastlines(resolution=res,linewidth=0.5,color='black')
+    ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='black')
+    ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
+    ax.set_title(f"Near-Surface Temperature Anomalies, {member}")
+
+    dataplot = ax.contourf(lonTgrid, latTgrid, convTanomalies, transform=ccrs.PlateCarree())
+    plt.colorbar(dataplot, orientation='horizontal');
+    plt.show()
 
 
-datasetT=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r25i1p1f2_gn_1851-1853.nc',engine='netcdf4')
-tasT=datasetT.tas
-tasConvert=tasT
-for i in range(1095):
-    tasConvert[i]=tasT[i]-273.15
-convTavg=tasConvert.mean(axis=0)
+print(convTanomalies)
 
 
-# for i in range(99): #Volc-pinatubo-full, 100 files, need to open each one and convert temp, create array that stores converted temp for each file, then average
-#     # datasetT=xr.open_mfdataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_*.nc',engine='netcdf4',parallel=True)
-#     tasT=datasetT.tas
-#     tasConvert=tasT
-#     for j in range(364):
-#         tasConvert[j]=tasT[j]-273.15
-    # convTavg[i]=tasConvert.mean(axis=0)
-print(convTavg)
+# latT=datasetT.lat
+# lonT=datasetT.lon
 
-# datasetT1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_r1i1p1f2_gn_18510101-18511231.nc',engine='netcdf4')
-#This dataset used to get plotting lat/lon values
-latT=datasetT.lat
-lonT=datasetT.lon
-# tasT1=datasetT1.tas
-# tasConvertT1=tasT1
+# lonTgrid, latTgrid=np.meshgrid(lonT,latT)
 
-
-# for i in range(364):
-#     tasConvertT1[i]=tasT1[i]-273.15
-# fullTconv=convTavg.mean(axis=0)#This should stay out of the loop
-# print(fullTconv.sizes) 
-
-lonTgrid, latTgrid=np.meshgrid(lonT,latT)
-
-lonW=-140
-lonE=-50
-latS=15
-latN=65
-cLat=(latN+latS)/2
-cLon=(lonW+lonE)/2
-res='110m'
-projPC=ccrs.PlateCarree()
-fig=plt.figure(figsize=(11,8.5))
-ax=plt.subplot(1,1,1,projection=projPC)
-gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
+# lonW=-140
+# lonE=-50
+# latS=15
+# latN=65
+# cLat=(latN+latS)/2
+# cLon=(lonW+lonE)/2
+# res='110m'
+# projPC=ccrs.PlateCarree()
+# fig=plt.figure(figsize=(11,8.5))
+# ax=plt.subplot(1,1,1,projection=projPC)
+# gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
 # ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
-ax.coastlines(resolution=res,linewidth=0.5,color='white')
-ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='white')
-ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
+# ax.coastlines(resolution=res,linewidth=0.5,color='black')
+# ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='black')
+# ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
+# ax.set_title("Near-Surface Temperature Anomalies, r25i1p1f2")
 
-dataplot = ax.contourf(lonTgrid, latTgrid, convTavg, transform=ccrs.PlateCarree())
-plt.colorbar(dataplot, orientation='horizontal');
-plt.show()
+# dataplot = ax.contourf(lonTgrid, latTgrid, convTanomalies, transform=ccrs.PlateCarree())
+# plt.colorbar(dataplot, orientation='horizontal');
+# plt.show()
