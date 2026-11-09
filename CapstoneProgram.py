@@ -152,9 +152,9 @@ for _, member, grid in found:
     #So, if this is concatenating into one dimension for ONE member, then I need to somehow do a double loop to concatenate all 25 members into a single dataset.
     #This loop is currently geared toward concatenating time. I need to change it to be geared toward concatenating over ensemble members based on defined var above.
     ds = ds.sortby("time") #Sorts datasets by time
-    tas = ds[var] #sets TAS variable
+    ens = ds[ens] #sets ENS variable instead of TAS
     output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc") #Defines output file name
-    out_ds = tas.to_dataset(name=var) #Attributes tas to new dataset
+    out_ds = ens.to_dataset(name='ens') #Attributes ens to new dataset
     out_ds.attrs = ds.attrs #Attaches attributes to new dataset
     out_ds.attrs["history"] = ( f"Combined ensemble {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
 out_ds.to_netcdf(output_file) #Writes new dataset to its own netCDF file
