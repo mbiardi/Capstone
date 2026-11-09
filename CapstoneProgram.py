@@ -14,57 +14,102 @@ from math import *
 from glob import glob
 import os
 import re
-datasetR1=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r1i1p1f1_gn_19910101-19961231.nc',engine='netcdf4')
-datasetR2=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r2i1p1f1_gn_19910101-19961231.nc')
-datasetR3=xr.open_dataset('/home/maddiebiardi/Desktop/VolMIPPrecipData/PrecipData/pr_day_MPI-ESM1-2-LR_volc-pinatubo-full_r3i1p1f1_gn_19910101-19961231.nc')
+
+# # These locations are NOT VIABLE, they MUST be changed to reflect Feynman locations!
+# full_pr_files="/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/"
+# model="MPI-ESM1-2-LR"
+# experiment="volc-pinatubo-full"
+# ensemble=[f"r{i}i{j}p{k}f{l}" for i in range(1,26) for j in range(1,26) for k in range(1,26) for l in range(1,26)]
+# years=["19910101-19961231"]
+# fname_template="pr_day_{model}_{experiment}_{ensemble}_gn_{years}.nc"
+# var="pr"
+# r_values=range(1,26)
+# if hasattr(xr,"coders") and hasattr(xr.coders, "CFDatetimeCoder"):
+#     time_kw={"decode_times": xr.coders.CFDatetimeCoder(use_cftime=True)}
+# else: time_kw={"use_cftime":True}
+# pattern=os.path.join(full_pr_files,f"{var}_day_{model}_{experiment}_r*i*p*f*_*_{years[0]}.nc")
+# member_re=re.compile(r"_(r(\d+)i(\d+)p(\d+)f(\d+))_([^_]+)_\d{8}-\d{8}\.nc$")
+# found=[]
+# for path in glob(pattern):
+#     m=member_re.search(os.path.basename(path))
+#     if m and int(m.group(2)) in r_values:
+#         rnum, inum, pnum, fnum=(int(m.group(k)) for k in (2,3,4,5))
+#         found.append(((rnum, inum, pnum, fnum), m.group(1),m.group(6)))
+#         found.sort()
+#         print(f"Found {len(found)} member(s):", [mem for _, mem, _ in found])
+#         if not found:
+#             raise FileNotFoundError(f"No files math: {pattern}")
+# for _, member, grid in found:
+#     files=[os.path.join(full_pr_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_{y}.nc") for y in years]
+#     missing=[f for f in files if not os.path.isfile(f)]
+#     if missing:
+#         print(f"Skipping {member}, missing: {missing}")
+#         continue
+#     ds=xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw)
+#     ds=ds.sortby("time")
+#     pr=ds[var]
+#     print(f"\n{member}: shape (time, lat, lon) = {pr.shape}") 
+#     print(" Time range:", pr.time.values[0], "to", pr.time.values[-1]) 
+#     output_file = os.path.join( full_pr_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1991-1996.nc") 
+#     out_ds = pr.to_dataset(name=var) 
+#     out_ds.attrs = ds.attrs
+#     out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
+#     out_ds.to_netcdf(output_file) 
+#     print(" Wrote:", output_file) 
+#     ds.close()
+# print(pr) 
+# print("Shape (time, lat, lon):", pr.shape) 
+# print("Time range:", pr.time.values[0], "to", pr.time.values[-1])
+
+
 #Vars for dataset 1
-latR1=datasetR1.lat_bnds
-lonR1=datasetR1.lon_bnds
-tR1=datasetR1.time_bnds
-precipR1=datasetR1.pr
-latR1=latR1.lat
-lonR1=lonR1.lon
+# latR1=datasetR1.lat_bnds
+# lonR1=datasetR1.lon_bnds
+# tR1=datasetR1.time_bnds
+# precipR1=datasetR1.pr
+# latR1=latR1.lat
+# lonR1=lonR1.lon
 
-#Vars for dataset 2
-latR2=datasetR2.lat_bnds
-lonR2=datasetR2.lon_bnds
-tR2=datasetR2.time_bnds
-precipR2=datasetR2.pr
+# #Vars for dataset 2
+# latR2=datasetR2.lat_bnds
+# lonR2=datasetR2.lon_bnds
+# tR2=datasetR2.time_bnds
+# precipR2=datasetR2.pr
 
-#Vars for dataset 3
-latR3=datasetR3.lat_bnds
-lonR3=datasetR3.lon_bnds
-tR3=datasetR3.time_bnds
-precipR3=datasetR3.pr
-day=86400
-density=998.2
-conversionR1=precipR1 #Initial definition of array with matching data to precip array, for later conversion of precip data.
-conversionR2=precipR2
-conversionR3=precipR3
+# #Vars for dataset 3
+# latR3=datasetR3.lat_bnds
+# lonR3=datasetR3.lon_bnds
+# tR3=datasetR3.time_bnds
+# precipR3=datasetR3.pr
+# day=86400
+# density=998.2
+# conversionR1=precipR1 #Initial definition of array with matching data to precip array, for later conversion of precip data.
+# conversionR2=precipR2
+# conversionR3=precipR3
 
-conversionR1t0=((precipR1[0]*day)/density)*1000 #conversion to mm/day using density of fresh water at 20C
-
-
-
-#Doing conversion across all times
-for i in range(2191):
-    conversionR1[i]=((precipR1[i]*day)/density)*1000
-    conversionR2[i]=((precipR2[i]*day)/density)*1000
-    conversionR3[i]=((precipR3[i]*day)/density)*1000
-
-timeavgR1=conversionR1
-timeavgR2=conversionR2
-timeavgR3=conversionR3
-
-convR1avg=conversionR1.mean(axis=0)
-# print(convR1avg.sizes)
+# conversionR1t0=((precipR1[0]*day)/density)*1000 #conversion to mm/day using density of fresh water at 20C
 
 
 
-#Now plotting precip for ONE timestamp across lat and lon
-#want latitude as x, longitude as y.
-#Need to create a plotting matrix where every x value has a corresponding y value
-lonR1grid, latR1grid = np.meshgrid(lonR1,latR1)
+# #Doing conversion across all times
+# for i in range(2191):
+#     conversionR1[i]=((precipR1[i]*day)/density)*1000
+#     conversionR2[i]=((precipR2[i]*day)/density)*1000
+#     conversionR3[i]=((precipR3[i]*day)/density)*1000
+
+# timeavgR1=conversionR1
+# timeavgR2=conversionR2
+# timeavgR3=conversionR3
+
+# convR1avg=conversionR1.mean(axis=0)
+# # print(convR1avg.sizes)
+
+
+
+# #Now plotting precip for ONE timestamp across lat and lon
+# #want latitude as x, longitude as y.
+# #Need to create a plotting matrix where every x value has a corresponding y value
+# lonR1grid, latR1grid = np.meshgrid(lonR1,latR1)
 
 
 
@@ -152,7 +197,7 @@ for _, member, grid in found:
     #So, if this is concatenating into one dimension for ONE member, then I need to somehow do a double loop to concatenate all 25 members into a single dataset.
     #This loop is currently geared toward concatenating time. I need to change it to be geared toward concatenating over ensemble members based on defined var above.
     ds = ds.sortby("time") #Sorts datasets by time
-    ens = ds[ens] #sets ENS variable instead of TAS
+    ens = ds["ens"] #sets ENS variable instead of TAS
     output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc") #Defines output file name
     out_ds = ens.to_dataset(name='ens') #Attributes ens to new dataset
     out_ds.attrs = ds.attrs #Attaches attributes to new dataset
@@ -161,7 +206,7 @@ out_ds.to_netcdf(output_file) #Writes new dataset to its own netCDF file
 print(" Wrote:", output_file) 
 ds.close()
 dataset=xr.open_dataset("/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_ensemble_gn_1851-1853.nc",engine="netcdf4") #SHOULD be full ensemble members, so ens=25.
-print(dataset) #So, we are only getting one value in ens, the last member. Do I need to create a new, temporary variable to concatenate all members into one dataset, THEN save?
+print(dataset) #This does NOT provide actual data into the new file. Implies that the loop must still be done over tas variable instead of ens.
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 for _, member, grid in found:
 
