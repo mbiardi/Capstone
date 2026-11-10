@@ -133,9 +133,10 @@ import re
 # plt.colorbar(dataplot, orientation='horizontal');
 # plt.show()
 
-
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #TEMPERATURE DATA
 
+#Try and do this for one year at a time, then compare against the paper!!
 full_tas_files="/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/"
 model = "MIROC-ES2L" 
 experiment = "volc-pinatubo-full"
@@ -158,116 +159,111 @@ for path in glob(pattern): #I think I might need to redo this for each ensemble 
         found.sort()
         print(f"Found {len(found)} member(s):", [mem for _, mem, _ in found]) 
         if not found:
-            raise FileNotFoundError(f"No files match: {pattern}") #No, because this is just finding file names, not actually concatenating them.
+            raise FileNotFoundError(f"No files match: {pattern}") 
 
-# for _, member, grid in found:
-#     files = [os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_{y}.nc") for y in years] 
-#     missing = [f for f in files if not os.path.isfile(f)] 
-#     if missing: 
-#         print(f"Skipping {member}, missing: {missing}") 
-#         continue 
-#     ds = xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw) 
-#     ds = ds.sortby("time") 
-#     tas = ds[var] 
-#     print(f"\n{member}: shape (time, lat, lon) = {tas.shape}") 
-#     print(" Time range:", tas.time.values[0], "to", tas.time.values[-1]) 
-#     output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc") 
-#     out_ds = tas.to_dataset(name=var) 
-#     out_ds.attrs = ds.attrs
-#     out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
-#     out_ds.to_netcdf(output_file) 
-#     print(" Wrote:", output_file) 
-#     ds.close()
+for _, member, grid in found:
+    files = [os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_{y}.nc") for y in years] 
+    missing = [f for f in files if not os.path.isfile(f)] 
+    if missing: 
+        print(f"Skipping {member}, missing: {missing}") 
+        continue 
+    ds = xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw) 
+    ds = ds.sortby("time") 
+    tas = ds[var] 
+    print(f"\n{member}: shape (time, lat, lon) = {tas.shape}") 
+    print(" Time range:", tas.time.values[0], "to", tas.time.values[-1]) 
+    output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc") 
+    out_ds = tas.to_dataset(name=var) 
+    out_ds.attrs = ds.attrs
+    out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
+    out_ds.to_netcdf(output_file) 
+    print(" Wrote:", output_file) 
+    ds.close()
 # #Now have all data in own files for three years. Need to figure out how to convert to C for each file, and then average across all files.
 # print(tas) 
 # print("Shape (time, lat, lon):", tas.shape) 
 # print("Time range:", tas.time.values[0], "to", tas.time.values[-1])
 
+
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Trying to concatenate all members across ensemble dimension for mean anomaly below.
-files, members = [], []
-for _, member, grid in found:
-    f = os.path.join(full_tas_files,
-                     f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc")
-    if not os.path.isfile(f):
-        print(f"Skipping {member}, missing: {f}")
-        continue
-    files.append(f)
-    members.append(member)
-print(f"Found {len(files)} members")
-ds = xr.open_mfdataset(
-    files, combine="nested", concat_dim="ens", data_vars="minimal", coords="minimal", compat="override", **time_kw)
-ds = ds.assign_coords(ens=("ens", members))# label members, e.g. r1i1p1f1
-ds = ds.sortby("time")
-out_ds = ds[[var]]# keeps tas plus its coords (ens, time, lat, lon)
-out_ds.attrs = ds.attrs
-out_ds.attrs["history"] = (f"Combined {len(members)} ensemble members with xarray. "+ ds.attrs.get("history", ""))
-output_file = os.path.join(full_tas_files,f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc")
-out_ds.to_netcdf(output_file)
-print("Wrote:", output_file)
-ds.close()
+
+
+# files, members = [], []
 # for _, member, grid in found:
-#     files = [os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc")] #opens file for each member of ensemble
-#     missing = [f for f in files if not os.path.isfile(f)] #Checks if file is missing
-#     if missing: 
-#         print(f"Skipping {member}, missing: {missing}") 
-#         continue 
-#     ds=xr.open_mfdataset(files, combine="nested", concat_dim="ens", data_vars="minimal", coords="minimal" **time_kw) #This should concatenate into a new dimension ens - however it does it for a single file at a time, I want to do it over all 25 members.
-#     #So, if this is concatenating into one dimension for ONE member, then I need to somehow do a double loop to concatenate all 25 members into a single dataset.
-#     #This loop is currently geared toward concatenating time. I need to change it to be geared toward concatenating over ensemble members based on defined var above.
-#     ds = ds.sortby("time") #Sorts datasets by time
-#     ens = ds["ens"] #sets ENS variable instead of TAS
-#     output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc") #Defines output file name
-#     out_ds = ens.to_dataset(name='ens') #Attributes ens to new dataset
-#     out_ds.attrs = ds.attrs #Attaches attributes to new dataset
-#     out_ds.attrs["history"] = ( f"Combined ensemble {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
-# out_ds.to_netcdf(output_file) #Writes new dataset to its own netCDF file
-# print(" Wrote:", output_file) 
+#     f = os.path.join(full_tas_files,
+#                      f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc")
+#     if not os.path.isfile(f):
+#         print(f"Skipping {member}, missing: {f}")
+#         continue
+#     files.append(f)
+#     members.append(member)
+# print(f"Found {len(files)} members")
+# ds = xr.open_mfdataset(
+#     files, combine="nested", concat_dim="ens", preprocess=lambda d:d[[var]], **time_kw)
+# ds = ds.assign_coords(ens=("ens", members))# label members, e.g. r1i1p1f1
+# ds = ds.sortby("time")
+# out_ds = ds[[var]]# keeps tas plus its coords (ens, time, lat, lon)
+# out_ds.attrs = ds.attrs
+# out_ds.attrs["history"] = (f"Combined {len(members)} ensemble members with xarray. "+ ds.attrs.get("history", ""))
+# output_file = os.path.join(full_tas_files,f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc")
+# out_ds.to_netcdf(output_file)
+# print("Wrote:", output_file)
 # ds.close()
-# dataset=xr.open_dataset("/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatubo-full/tas_day_MIROC-ES2L_volc-pinatubo-full_ensemble_gn_1851-1853.nc",engine="netcdf4") #SHOULD be full ensemble members, so ens=25.
-# print(dataset) #This does NOT provide actual data into the new file. Implies that the loop must still be done over tas variable instead of ens.
+
+
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
-for _, member, grid in found:
 
-    datasetT=xr.open_dataset(os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc"), engine="netcdf4")
-    tasT=datasetT.tas
-    tasConvert=tasT
-    for i in range(1095):
-        tasConvert[i]=tasT[i]-273.15
-    convTavg=tasConvert.mean(axis=0)
-    for j in range(1095):
-        tasConvert[j]=tasT[j]-convTavg
-    convTanomalies=tasConvert.mean(axis=0)#This should be anomalies
-    latT=datasetT.lat
-    lonT=datasetT.lon
-
-    lonTgrid, latTgrid=np.meshgrid(lonT,latT)
-
-    lonW=-140
-    lonE=-50
-    latS=15
-    latN=65
-    # cLat=(latN+latS)/2
-    # cLon=(lonW+lonE)/2
-    res='110m'
-    projPC=ccrs.PlateCarree()
-    fig=plt.figure(figsize=(11,8.5))
-    ax=plt.subplot(1,1,1,projection=projPC)
-    gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
-    ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
-    ax.coastlines(resolution=res,linewidth=0.5,color='black')
-    ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='black')
-    ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
-    ax.set_title(f"Near-Surface Temperature Anomalies, {member}")
-
-    dataplot = ax.contourf(lonTgrid, latTgrid, convTanomalies, transform=ccrs.PlateCarree())
-    plt.colorbar(dataplot, orientation='horizontal');
-    plt.show()
-    #Now able to loop through all members to plot, now need to figure out how to concatenate all members to get mean anomaly for full forcing.
-
-
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Temperature Anomaly Calculation
+datasetT=xr.open_dataset(os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc"), engine="netcdf4")
+print(datasetT.sizes)
+tasT=datasetT.tas
+tasT=tasT.mean(axis=0) #This should create mean across all datasets in ens dimension
+print("This is size of tasT after averaging across ens",tasT)
+tasConvert=tasT
+for i in range(1095):
+    tasConvert[i]=tasT[i]-273.15
+convTavg=tasConvert.mean(axis=0)
+print(convTavg)
+for j in range(1095):
+    tasConvert[j]=tasT[j]-convTavg
+convTanomalies=tasConvert.mean(axis=0)#This should be anomalies
 print(convTanomalies)
+latT=datasetT.lat
+lonT=datasetT.lon
+
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Temperature Anomaly Plotting
+
+lonTgrid, latTgrid=np.meshgrid(lonT,latT)
+
+lonW=-140
+lonE=-50
+latS=15
+latN=65
+# cLat=(latN+latS)/2
+# cLon=(lonW+lonE)/2
+res='110m'
+projPC=ccrs.PlateCarree()
+fig=plt.figure(figsize=(11,8.5))
+ax=plt.subplot(1,1,1,projection=projPC)
+gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
+# ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
+ax.coastlines(resolution=res,linewidth=0.5,color='black')
+ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='black')
+ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
+ax.set_title(f"Near-Surface Temperature Anomalies, ensemble average")
+dataplot = ax.contourf(lonTgrid, latTgrid, convTanomalies, transform=ccrs.PlateCarree())
+plt.colorbar(dataplot, orientation='horizontal');
+plt.show()
+#Now able to loop through all members to plot, now need to figure out how to concatenate all members to get mean anomaly for full forcing.
+
+
+# print(convTanomalies)
 
 
 # latT=datasetT.lat
