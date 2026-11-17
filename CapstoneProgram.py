@@ -250,14 +250,15 @@ for i in range(365):
     for j in range(64):
         for k in range(128):
             tasKtoC[i][j][k]=tasT[i][j][k]-273.15
-    print("One done!",[i-1],[j-1],[k-1])
-    # print(tasKtoC[i][j][k])
+            #print(i-1,j-1,k-1)
+    #print("One done!",[i-1],[j-1],[k-1])
+print(tasKtoC[0][31][64])
 tasKtoCavg=tasKtoC.mean(axis=0)
 for i in range(365):
     for j in range(64):
         for k in range(128):
             tasKtoC[i][j][k]=tasKtoC[i][j][k]-tasKtoCavg[j][k]
-    print("One done!"[i])
+    #print("One done!"[i-1])
 tasKtoCanomaly=tasKtoC.mean(axis=0) #I wonder if this is also causing issues, but I'm not sure why it would be. It makes sense that the anomalies would get averaged over every time stamp, right?
 #It doesn't make sense. But I do need to average over all the time stamps anyways. Do I do that first, and THEN subtract the average for each location?
 #No, because that literally just gives me the average again.
@@ -265,7 +266,7 @@ tasKtoCanomaly=tasKtoC.mean(axis=0) #I wonder if this is also causing issues, bu
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Temperature Anomaly Plotting
-
+print("Plotting...")
 lonTgrid, latTgrid=np.meshgrid(lonT,latT)
 vmin,vmax=-1,1
 level = np.linspace(vmin, vmax)
