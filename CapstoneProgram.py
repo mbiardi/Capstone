@@ -141,7 +141,7 @@ full_tas_files="/home/maddiebiardi/Desktop/VolMIPPrecipData/TASData/volc-pinatub
 model = "MIROC-ES2L" 
 experiment = "volc-pinatubo-full"
 ensemble=[f"r{i}i{j}p{k}f{l}" for i in range (1,26) for j in range(1,26) for k in range(1,26) for l in range(1,26)]
-years=["18510101-18511231","18520101-18521231","18530101-18531231"]
+years=["18530101-18531231"]#"18510101-18511231","18520101-18521231",
 fname_template="tas_day_{model}_{experiment}_{ensemble}_gn_{years}.nc"
 var="tas"
 r_values = range(1, 26)
@@ -167,18 +167,18 @@ for _, member, grid in found:
     if missing: 
         print(f"Skipping {member}, missing: {missing}") 
         continue 
-    ds = xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw) 
-    ds = ds.sortby("time") 
-    tas = ds[var] 
-    print(f"\n{member}: shape (time, lat, lon) = {tas.shape}") 
-    print(" Time range:", tas.time.values[0], "to", tas.time.values[-1]) 
-    output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc") 
-    out_ds = tas.to_dataset(name=var) 
-    out_ds.attrs = ds.attrs
-    out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
-    out_ds.to_netcdf(output_file) 
-    print(" Wrote:", output_file) 
-    ds.close()
+#     ds = xr.open_mfdataset(files, combine="nested", concat_dim="time", data_vars="minimal", coords="minimal", compat="override", **time_kw) 
+#     ds = ds.sortby("time") 
+#     tas = ds[var] 
+#     print(f"\n{member}: shape (time, lat, lon) = {tas.shape}") 
+#     print(" Time range:", tas.time.values[0], "to", tas.time.values[-1]) 
+#     output_file = os.path.join( full_tas_files, f"{var}_day_{model}_{experiment}_{member}_{grid}_1853.nc") 
+#     out_ds = tas.to_dataset(name=var) 
+#     out_ds.attrs = ds.attrs
+#     out_ds.attrs["history"] = ( f"Combined {years[0]} to {years[-1]} with xarray. " + ds.attrs.get("history", "")) 
+#     out_ds.to_netcdf(output_file) 
+#     print(" Wrote:", output_file) 
+#     ds.close()
 # #Now have all data in own files for three years. Need to figure out how to convert to C for each file, and then average across all files.
 # print(tas) 
 # print("Shape (time, lat, lon):", tas.shape) 
@@ -195,12 +195,14 @@ for _, member, grid in found:
 # files, members = [], []
 # for _, member, grid in found:
 #     f = os.path.join(full_tas_files,
-#                      f"{var}_day_{model}_{experiment}_{member}_{grid}_1851-1853.nc")
+#                      f"{var}_day_{model}_{experiment}_{member}_{grid}_1853.nc")
 #     if not os.path.isfile(f):
 #         print(f"Skipping {member}, missing: {f}")
 #         continue
 #     files.append(f)
 #     members.append(member)
+#     print("appended!")
+#     print("")
 # print(f"Found {len(files)} members")
 # ds = xr.open_mfdataset(
 #     files, combine="nested", concat_dim="ens", preprocess=lambda d:d[[var]], **time_kw)
@@ -209,7 +211,7 @@ for _, member, grid in found:
 # out_ds = ds[[var]]# keeps tas plus its coords (ens, time, lat, lon)
 # out_ds.attrs = ds.attrs
 # out_ds.attrs["history"] = (f"Combined {len(members)} ensemble members with xarray. "+ ds.attrs.get("history", ""))
-# output_file = os.path.join(full_tas_files,f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc")
+# output_file = os.path.join(full_tas_files,f"{var}_day_{model}_{experiment}_ensemble_{grid}_1853.nc")
 # out_ds.to_netcdf(output_file)
 # print("Wrote:", output_file)
 # ds.close()
@@ -219,28 +221,54 @@ for _, member, grid in found:
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Temperature Anomaly Calculation
-datasetT=xr.open_dataset(os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_ensemble_{grid}_1851-1853.nc"), engine="netcdf4")
+datasetT=xr.open_dataset(os.path.join(full_tas_files, f"{var}_day_{model}_{experiment}_ensemble_{grid}_1853.nc"), engine="netcdf4")
 print(datasetT.sizes)
-tasT=datasetT.tas
-tasT=tasT.mean(axis=0) #This should create mean across all datasets in ens dimension
-print("This is size of tasT after averaging across ens",tasT)
-tasConvert=tasT
-for i in range(1095):
-    tasConvert[i]=tasT[i]-273.15
-convTavg=tasConvert.mean(axis=0)
-print(convTavg)
-for j in range(1095):
-    tasConvert[j]=tasT[j]-convTavg
-convTanomalies=tasConvert.mean(axis=0)#This should be anomalies
-print(convTanomalies)
+# tasT=datasetT.tas
+# tasT=tasT.mean(axis=0) #This should create mean across all datasets in ens dimension
+# # print("This is size of tasT after averaging across ens",tasT)
+# # print(tasT[364][0][0])
+# tasConvertC=tasT
+# for i in range(365):
+#     tasConvertC[i]=tasT[i]-273.15
+# # print("Tas Convert Value",tasConvert[364][0][0])
+# convTavg=tasConvertC.mean(axis=0)
+# # print(convTavg[0][0])
+# for j in range(365):
+#     tasConvertC[j]=tasConvertC[j]-convTavg
+# # print("Tas Convert Value",tasConvertC)
+# convTanomalies=tasConvertC.mean(axis=0)#This should be anomalies
+# # print(convTanomalies[0][0])
 latT=datasetT.lat
 lonT=datasetT.lon
+
+#Kept getting very very small anomalies out of above code - trying to rectify that here by looping over every location and every time stamp before averaging.
+tasT=datasetT.tas
+tasT=tasT.mean(axis=0)
+tasKtoC=tasT
+print(tasKtoC)
+for i in range(365):
+    for j in range(64):
+        for k in range(128):
+            tasKtoC[i][j][k]=tasT[i][j][k]-273.15
+    print("One done!",[i])
+    # print(tasKtoC[i][j][k])
+tasKtoCavg=tasKtoC.mean(axis=0)
+for i in range(365):
+    for j in range(64):
+        for k in range(128):
+            tasKtoC[i][j][k]=tasKtoC[i][j][k]-tasKtoCavg[j][k]
+    print("One done!"[i])
+tasKtoCanomaly=tasKtoC.mean(axis=0) #I wonder if this is also causing issues, but I'm not sure why it would be. It makes sense that the anomalies would get averaged over every time stamp, right?
+#It doesn't make sense. But I do need to average over all the time stamps anyways. Do I do that first, and THEN subtract the average for each location?
+#No, because that literally just gives me the average again.
+#Trying to index the subtraction for anomaly loop, because maybe it's just subtracting the anomaly at one location for every location? That would explain the weird magnitudes.
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Temperature Anomaly Plotting
 
 lonTgrid, latTgrid=np.meshgrid(lonT,latT)
-
+vmin,vmax=-1,1
+level = np.linspace(vmin, vmax)
 lonW=-140
 lonE=-50
 latS=15
@@ -256,38 +284,14 @@ gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='
 ax.coastlines(resolution=res,linewidth=0.5,color='black')
 ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='black')
 ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
-ax.set_title(f"Near-Surface Temperature Anomalies, ensemble average")
-dataplot = ax.contourf(lonTgrid, latTgrid, convTanomalies, transform=ccrs.PlateCarree())
-plt.colorbar(dataplot, orientation='horizontal');
-plt.show()
-#Now able to loop through all members to plot, now need to figure out how to concatenate all members to get mean anomaly for full forcing.
-
-
-# print(convTanomalies)
-
-
-# latT=datasetT.lat
-# lonT=datasetT.lon
-
-# lonTgrid, latTgrid=np.meshgrid(lonT,latT)
-
-# lonW=-140
-# lonE=-50
-# latS=15
-# latN=65
-# cLat=(latN+latS)/2
-# cLon=(lonW+lonE)/2
-# res='110m'
-# projPC=ccrs.PlateCarree()
-# fig=plt.figure(figsize=(11,8.5))
-# ax=plt.subplot(1,1,1,projection=projPC)
-# gl= ax.gridlines(draw_labels=True,linewidth=2,color='gray',alpha=0.5,linestyle='--')
-# ax.set_extent([lonW,lonE,latS,latN],crs=projPC)
-# ax.coastlines(resolution=res,linewidth=0.5,color='black')
-# ax.add_feature(cftr.BORDERS,linewidth=0.5,edgecolor='black')
-# ax.add_feature(cftr.STATES,linewidth=0.5,edgecolor='red')
-# ax.set_title("Near-Surface Temperature Anomalies, r25i1p1f2")
-
+ax.set_title(f"Near-Surface Temperature, ensemble average, 1851")
 # dataplot = ax.contourf(lonTgrid, latTgrid, convTanomalies, transform=ccrs.PlateCarree())
-# plt.colorbar(dataplot, orientation='horizontal');
+dataplot = ax.pcolormesh(lonTgrid, latTgrid, tasKtoCanomaly,transform=ccrs.PlateCarree(),vmin=vmin,vmax=vmax,cmap='RdBu_r',shading='auto')
+plt.colorbar(dataplot, orientation='horizontal', label='Temperature (C)')
+plt.show()
+# # dataplot = ax.contourf(lonTgrid, latTgrid, convTavg, transform=ccrs.PlateCarree())
+# im = ax.imshow(convTanomalies);
+# plt.colorbar(im)#, orientation='horizontal');
+# # im = ax.imshow(convTanomalies);
+# im.set_clim(-1, 1);
 # plt.show()
