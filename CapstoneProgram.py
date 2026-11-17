@@ -250,7 +250,7 @@ for i in range(365):
     for j in range(64):
         for k in range(128):
             tasKtoC[i][j][k]=tasT[i][j][k]-273.15
-    print("One done!",[i],[j],[k])
+    print("One done!",[i-1],[j-1],[k-1])
     # print(tasKtoC[i][j][k])
 tasKtoCavg=tasKtoC.mean(axis=0)
 for i in range(365):
